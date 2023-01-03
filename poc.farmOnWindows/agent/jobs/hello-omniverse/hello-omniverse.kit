@@ -1,0 +1,22 @@
+# Standard KIT metadata about the package for the job, providing information about what the feature accomplishes so
+# it can be made visible to Users in Omniverse applications:
+[package]
+title = "Minimal Omniverse Farm job definition"
+description = "A simple job definition for an Omniverse Farm job, printing a welcoming message."
+category = "jobs"
+version = "1.0.0"
+authors = ["Omniverse Team"]
+keywords = ["job"]
+
+# Schema for the job definition of a system command or executable:
+[job.hello-omniverse]
+# Type of the job. Using "base" makes it possible to run executable files:
+job_type = "base"
+# User-friendly display name for the job:
+name = "simple-hello-omniverse-job"
+# The command or application that will be executed by the job:
+command = "path"
+# Arguments to supply to the command specified above:
+args = []
+# Capture information from `stdout` and `stderr` for the job's logs:
+log_to_stdout = true

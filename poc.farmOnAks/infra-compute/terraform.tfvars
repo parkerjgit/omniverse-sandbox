@@ -1,0 +1,6 @@
+location            = "eastus"
+namespace           = "faks"
+project             = "omniverse-farm-on-aks"
+resource_group_name = "dt-sandbox-resources"
+env                 = "dev"
+ssh_public_key      = "~/.ssh/id_rsa.pub"
