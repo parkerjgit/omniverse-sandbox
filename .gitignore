@@ -1,3 +1,18 @@
+# all folders starting with _ are local
+_*/
+
+.DS_Store
+**/.vscode/ipch
+
+# byte-compiled python files
+*.py[cod]
+
+# ignore all .vs directories
+**/.vs
+
+# ignore all app directories
+**/app
+
 # Local .terraform directories
 **/.terraform/*
 
