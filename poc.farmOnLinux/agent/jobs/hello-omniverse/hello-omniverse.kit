@@ -1,0 +1,26 @@
+[package]
+title = "Minimal Omniverse Farm job definition"
+description = "A simple job definition for an Omniverse Farm job, printing a welcoming message."
+category = "jobs"
+version = "1.0.0"
+authors = [ "Omniverse Team",]
+keywords = [ "job",]
+
+[job.hello-omniverse]
+name = "hello-omniverse"
+job_type = "base"
+command = "echo"
+args = [ "Hello Omniverse Farm!!!",]
+task_function = ""
+log_to_stdout = true
+job_spec_path = "/home/josh/code/sandbox/omniverse-sandbox/poc.farmOnLinux/agent/jobs/hello-omniverse/hello-omniverse.kit"
+headless = true
+active = true
+success_return_codes = [ 0,]
+container = ""
+
+[job.hello-omniverse.env]
+
+[job.hello-omniverse.allowed_args]
+
+[job.hello-omniverse.capacity_requirements]

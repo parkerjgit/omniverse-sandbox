@@ -1,0 +1,19 @@
+# Package metadata
+[package]
+title = "Simple python script"
+description = "A job definition to run simple python script"
+version = "1.0.0"
+authors = ["Josh Parker"]
+category = "jobs"
+keywords = ["job"]
+
+# Job definition properties (see https://docs.omniverse.nvidia.com/app_farm/app_farm/guides/creating_job_definitions.html#schema-reference)
+[job.simple-python-script]
+name = "simple-python-script"
+job_type = "base"
+command = "python3"
+args = ["/home/josh/code/sandbox/omniverse-sandbox/poc.farmOnLinux/agent/jobs/simple-python-script/script.py"]
+
+# Allowed Args = ignore all arguments from client except these ones.
+[job.simple-python-script.allowed_args]
+name = { arg = "--name", default = "World" }
