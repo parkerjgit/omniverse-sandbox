@@ -1,0 +1,17 @@
+[package]
+title = "Simple Headless Service"
+version = "0.1.0"
+description = "A simple headless service"
+
+[settings.app.exts.folders]
+'++' = ["./exts"]
+
+[settings.exts]
+"omni.services.transport.server.http".port = 8311
+"omni.kit.registry.nucleus".registries = [
+   { name = "kit/services", url = "https://dw290v42wisod.cloudfront.net/exts/kit/services"},
+]
+
+[dependencies]
+"omni.services.transport.server.http" = {}
+"poc.services.headless" = {}

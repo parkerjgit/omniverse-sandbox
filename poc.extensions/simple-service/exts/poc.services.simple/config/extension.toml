@@ -1,0 +1,15 @@
+[package]
+version = "1.0.0"
+authors = ["Josh Parker"]
+title = "poc services simple"
+description="A simple service extension"
+readme  = "docs/README.md"
+changelog="docs/CHANGELOG.md"
+icon = "data/icon.png"
+
+[dependencies]
+"omni.services.core" = {}
+
+# Main python module this extension provides, it will be publicly available as "import poc.services.simple".
+[[python.module]]
+name = "poc.services.simple"

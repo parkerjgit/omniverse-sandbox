@@ -1,0 +1,15 @@
+[package]
+version = "1.0.0"
+authors = ["Josh Parker"]
+title = "poc services headless"
+description="A simple headless service"
+readme  = "docs/README.md"
+changelog="docs/CHANGELOG.md"
+icon = "data/icon.png"
+
+[dependencies]
+"omni.services.core" = {}
+
+# Main python module this extension provides, it will be publicly available as "import poc.services.simple".
+[[python.module]]
+name = "poc.services.headless"
