@@ -67,7 +67,7 @@
         ```
         az aks get-credentials \
             --resource-group "dt-sandbox-resources" \
-            --name "faks-dev-aks-cluster"
+            --name "ovfarm-dev-aks-cluster"
         ```
     1. inspect cluster
         ```
@@ -75,7 +75,80 @@
         kubectl describe svc kubernetes
         ```
 
-### 2. Deploy Nvidia Device Plugin for K8s (via helm)
+### 2a. Deploy Node Pool from image (Recommended)
+
+1. Update your cluster to use the AKS GPU image 
+    1. Install aks preview extension
+        ```
+        az extension add --name aks-preview
+        az extension update --name aks-preview
+        ```
+    1. Register the GPUDedicatedVHDPreview feature (enables feature flag)
+        ```
+        az feature register --namespace "Microsoft.ContainerService" --name "GPUDedicatedVHDPreview"
+        az feature show --namespace "Microsoft.ContainerService" --name "GPUDedicatedVHDPreview"
+        ```
+    1. Register provider (hack to propage the change)
+        ```
+        az provider register --namespace Microsoft.ContainerService
+        ```
+1. Deploy node pool
+    ```
+    az aks nodepool add \
+        --resource-group dt-sandbox-resources \
+        --cluster-name ovfarm-dev-aks-cluster \
+        --name gpunodepool \
+        --node-count 1 \
+        --node-vm-size Standard_NV6ads_A10_v5 \
+        --node-taints sku=gpu:NoSchedule \
+        --aks-custom-headers UseGPUDedicatedVHD=true \
+        --enable-cluster-autoscaler \
+        --min-count 1 \
+        --max-count 3 \
+        --os-sku Ubuntu \
+        --mode User \
+        --labels vm_type=GPU
+    ```
+1. [optionally] Update nodepool e.g. to add labels (expensive to recreate)
+    ```
+    az aks nodepool update \
+        --resource-group dt-sandbox-resources \
+        --cluster-name ovfarm-dev-aks-cluster \
+        --name gpunodepool \
+        --labels vm_type=GPU 
+    ```
+1. Verify that GPUs are schedulable
+    ```
+    kubectl get nodes
+    kubectl describe node <node_name>
+    ```
+    * Should see "nvidia.com/gpu" listed under "Capacity"
+1. Run a sample GPU workload
+    ```sh
+    kubectl apply -f ./jobs/samples-tf-mnist-demo.yaml
+    ```
+1. Get job status
+    ```
+    kubectl get jobs samples-tf-mnist-demo --watch
+    ```
+1. Get logs
+    ```
+    kubectl get pods --selector app=samples-tf-mnist-demo
+    kubectl logs <pod_name>
+    ````
+1. Clean-up resources
+    ```
+    az aks nodepool delete \
+        --resource-group dt-sandbox-resources \
+        --cluster-name ovfarm-dev-aks-cluster \
+        --name gpunodepool
+    ```
+
+### 2b. Deploy GPU Node Pool from Daemonset (Untested)
+
+### 2c. Manually configure nodes the hard way (Don't do this)
+
+#### Deploy Nvidia Device Plugin for K8s (via helm)
 
 > TODO: Verifiy [Device Plugin prerequisites](https://github.com/NVIDIA/k8s-device-plugin#prerequisites):
 > * NVIDIA drivers ~= 384.81
@@ -94,7 +167,7 @@
         ```
         az aks get-credentials \
             --resource-group "dt-sandbox-resources" \
-            --name "faks-dev-aks-cluster"
+            --name "ovfarm-dev-aks-cluster"
         ```
     1. install **helm chart** repo (one-time)
         ```
@@ -132,7 +205,7 @@
         ```
     1. [optionally] clean-up resources
 
-### 3. Install NVIDIA driver (version 470.52.02) (Manually)
+#### Install NVIDIA driver (version 470.52.02) (Manually)
 
 https://docs.nvidia.com/datacenter/tesla/tesla-installation-notes/index.html
 https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#post-installation-actions
@@ -171,134 +244,117 @@ https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#post-insta
         apt-get update && apt-get install procps
         ps -p 1 -o comm=
         ```
-1. download drivers from nvidia
-470.161.03 - https://www.nvidia.com/Download/driverResults.aspx/194750/en-us/
+1. download/install drivers from nvidia (470.161.03 - https://www.nvidia.com/Download/driverResults.aspx/194750/en-us/)
+    1. install utils/deps
+        ```
+        apt update
+        apt install pciutils
+        apt-get install wget
+        ```
+    1. verify CUDA-capable GPU
+        ```
+        lspci | grep -i NVIDIA
+        ```
+    1. Download drivers
+        CUDA_DRIVERS_PKG=cuda-drivers-510_510.47.03-1_amd64.deb \
+        CUDA_REPO_PKG=cuda-11-6_11.6.2-1_amd64.deb \
+        CUDA_RUNTIME_PKG=cuda-runtime-11-6_11.6.2-1_amd64.deb \
+        CUDA_TOOLKIT_PKG=cuda-toolkit-11-6_11.6.2-1_amd64.deb \
+        CUDA_DEMO_SUITE_PKG=cuda-demo-suite-11-6_11.6.55-1_amd64.deb
+        CUDA_PKG=cuda-11-7_11.7.1-1_amd64.deb
+        wget -O /tmp/${CUDA_PKG} https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/${CUDA_PKG} 
+        dpkg -i /tmp/${CUDA_PKG}
 
-install utils/deps
-```
-apt update
-apt install pciutils
-apt-get install wget
-```
+        wget -O /tmp/${CUDA_DRIVERS_PKG} https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/${CUDA_DRIVERS_PKG} \
+        wget -O /tmp/${CUDA_RUNTIME_PKG} https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/${CUDA_RUNTIME_PKG} \
+        wget -O /tmp/${CUDA_TOOLKIT_PKG} https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/${CUDA_TOOLKIT_PKG} \
+        wget -O /tmp/${CUDA_DEMO_SUITE_PKG} https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/${CUDA_DEMO_SUITE_PKG} \
+        wget -O /tmp/${CUDA_REPO_PKG} https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/${CUDA_REPO_PKG} 
 
-verify CUDA-capable GPU
-```
-lspci | grep -i NVIDIA
-```
-<!-- CUDA_DRIVERS_PKG=cuda-drivers-510_510.47.03-1_amd64.deb \
-CUDA_REPO_PKG=cuda-11-6_11.6.2-1_amd64.deb \
-CUDA_RUNTIME_PKG=cuda-runtime-11-6_11.6.2-1_amd64.deb \
-CUDA_TOOLKIT_PKG=cuda-toolkit-11-6_11.6.2-1_amd64.deb \
-CUDA_DEMO_SUITE_PKG=cuda-demo-suite-11-6_11.6.55-1_amd64.deb -->
+        dpkg -i /tmp/${CUDA_DRIVERS_PKG} \
+        dpkg -i /tmp/${CUDA_RUNTIME_PKG} \
+        dpkg -i /tmp/${CUDA_TOOLKIT_PKG} \
+        dpkg -i /tmp/${CUDA_DEMO_SUITE_PKG} \
+        dpkg -i /tmp/${CUDA_REPO_PKG}
 
-CUDA_PKG=cuda-11-7_11.7.1-1_amd64.deb
-wget -O /tmp/${CUDA_PKG} https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/${CUDA_PKG} 
-dpkg -i /tmp/${CUDA_PKG}
+        -v525-
 
-wget -O /tmp/${CUDA_DRIVERS_PKG} https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/${CUDA_DRIVERS_PKG} \
-wget -O /tmp/${CUDA_RUNTIME_PKG} https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/${CUDA_RUNTIME_PKG} \
-wget -O /tmp/${CUDA_TOOLKIT_PKG} https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/${CUDA_TOOLKIT_PKG} \
-wget -O /tmp/${CUDA_DEMO_SUITE_PKG} https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/${CUDA_DEMO_SUITE_PKG} \
-wget -O /tmp/${CUDA_REPO_PKG} https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/${CUDA_REPO_PKG} 
+        LIBNV_COM=libnvidia-common-525_525.60.13-0ubuntu1_all.deb \
 
-dpkg -i /tmp/${CUDA_DRIVERS_PKG} \
-dpkg -i /tmp/${CUDA_RUNTIME_PKG} \
-dpkg -i /tmp/${CUDA_TOOLKIT_PKG} \
-dpkg -i /tmp/${CUDA_DEMO_SUITE_PKG} \
-dpkg -i /tmp/${CUDA_REPO_PKG}
+        LIBX=libx11-6_1.8.1-2_amd64.deb \
+        LIBXEXT=libxext6_1.3.4-1+b1_amd64.deb \
+        LIBNV_COMPUTE=libnvidia-compute-525_525.60.13-0ubuntu1_amd64.deb \
 
----
+        LIBNV_DECODE=libnvidia-decode-525_525.60.13-0ubuntu1_amd64.deb \
+        LIBNV_ENCODE=libnvidia-encode-525_525.60.13-0ubuntu1_amd64.deb \
+        LIBNV_FBC1=libnvidia-fbc1-525_525.60.13-0ubuntu1_amd64.deb \
+        LIBNV_GL=libnvidia-gl-525_525.60.13-0ubuntu1_amd64.deb \
+        NV_COMPUTE_UTILS=nvidia-compute-utils-525_525.60.13-0ubuntu1_amd64.deb \
+        NV_DKMS=nvidia-dkms-525_525.60.13-0ubuntu1_amd64.deb \
+        NV_DRIVER=nvidia-driver-525_525.60.13-0ubuntu1_amd64.deb \
+        NV_KERNAL_COM=nvidia-kernel-common-525_525.60.13-0ubuntu1_amd64.deb \
+        NV_KERNAL_SOURCE=nvidia-kernel-source-525_525.60.13-0ubuntu1_amd64.deb \
+        NV_DRIVERS=cuda-drivers-525_525.60.13-1_amd64.deb
 
-# v525
-LIBNV_COM=libnvidia-common-525_525.60.13-0ubuntu1_all.deb \
+        wget -O /tmp/${LIBNV_COM} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${LIBNV_COM} \
+        wget -O /tmp/${LIBX} http://ftp.ca.debian.org/debian/pool/main/libx/libx11/${LIBX} \
+        wget -O /tmp/${LIBXEXT} http://ftp.ca.debian.org/debian/pool/main/libx/libx11/${LIBXEXT} \
+        wget -O /tmp/${LIBNV_COMPUTE} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${LIBNV_COMPUTE} \
+        wget -O /tmp/${LIBNV_DECODE} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${LIBNV_DECODE} \
+        wget -O /tmp/${LIBNV_ENCODE} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${LIBNV_ENCODE} \
+        wget -O /tmp/${LIBNV_FBC1} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${LIBNV_FBC1} \
+        wget -O /tmp/${LIBNV_GL} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${LIBNV_GL} \
+        wget -O /tmp/${NV_COMPUTE_UTILS} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${NV_COMPUTE_UTILS} \
+        wget -O /tmp/${NV_DKMS} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${NV_DKMS} \
+        wget -O /tmp/${NV_DRIVER} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${NV_DRIVER} \
+        wget -O /tmp/${NV_KERNAL_COM} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${NV_KERNAL_COM} \
+        wget -O /tmp/${NV_KERNAL_SOURCE} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${NV_KERNAL_SOURCE} \
+        wget -O /tmp/${NV_DRIVERS} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${NV_DRIVERS} 
 
-LIBX=libx11-6_1.8.1-2_amd64.deb \
-LIBXEXT=libxext6_1.3.4-1+b1_amd64.deb \
-LIBNV_COMPUTE=libnvidia-compute-525_525.60.13-0ubuntu1_amd64.deb \
+        dpkg -i /tmp/${LIBNV_COM} \
+        dpkg -i /tmp/${LIBX} \
+        dpkg -i /tmp/${LIBXEXT} \
+        dpkg -i /tmp/${LIBNV_COMPUTE} \
+        dpkg -i /tmp/${LIBNV_DECODE} \
+        dpkg -i /tmp/${LIBNV_ENCODE} \
+        dpkg -i /tmp/${LIBNV_FBC1} \
+        dpkg -i /tmp/${LIBNV_GL} \
+        dpkg -i /tmp/${NV_COMPUTE_UTILS} \
+        dpkg -i /tmp/${NV_DKMS} \
+        dpkg -i /tmp/${NV_DRIVER} \
+        dpkg -i /tmp/${NV_KERNAL_COM} \
+        dpkg -i /tmp/${NV_KERNAL_SOURCE} \
+        dpkg -i /tmp/${NV_DRIVERS}
 
-LIBNV_DECODE=libnvidia-decode-525_525.60.13-0ubuntu1_amd64.deb \
-LIBNV_ENCODE=libnvidia-encode-525_525.60.13-0ubuntu1_amd64.deb \
-LIBNV_FBC1=libnvidia-fbc1-525_525.60.13-0ubuntu1_amd64.deb \
-LIBNV_GL=libnvidia-gl-525_525.60.13-0ubuntu1_amd64.deb \
-NV_COMPUTE_UTILS=nvidia-compute-utils-525_525.60.13-0ubuntu1_amd64.deb \
-NV_DKMS=nvidia-dkms-525_525.60.13-0ubuntu1_amd64.deb \
-NV_DRIVER=nvidia-driver-525_525.60.13-0ubuntu1_amd64.deb \
-NV_KERNAL_COM=nvidia-kernel-common-525_525.60.13-0ubuntu1_amd64.deb \
-NV_KERNAL_SOURCE=nvidia-kernel-source-525_525.60.13-0ubuntu1_amd64.deb \
-NV_DRIVERS=cuda-drivers-525_525.60.13-1_amd64.deb
+        apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/3bf863cc.pub
 
-wget -O /tmp/${LIBNV_COM} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${LIBNV_COM} \
+        rm -f /tmp/${CUDA_DRIVERS_PKG}
+        rm -f /tmp/${CUDA_RUNTIME_PKG}
+        rm -f /tmp/${CUDA_TOOLKIT_PKG}
+        rm -f /tmp/${CUDA_DEMO_SUITE_PKG}
+        rm -f /tmp/${CUDA_REPO_PKG}
 
-wget -O /tmp/${LIBX} http://ftp.ca.debian.org/debian/pool/main/libx/libx11/${LIBX} \
-wget -O /tmp/${LIBXEXT} http://ftp.ca.debian.org/debian/pool/main/libx/libx11/${LIBXEXT} \
-wget -O /tmp/${LIBNV_COMPUTE} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${LIBNV_COMPUTE} \
+        GLX_ALT=glx-alternative-nvidia_1.2.1_amd64.deb
+        wget -O /tmp/${GLX_ALT} http://ftp.ca.debian.org/debian/pool/contrib/g/glx-alternatives/${GLX_ALT}
+        dpkg -i /tmp/${GLX_ALT}
 
-wget -O /tmp/${LIBNV_DECODE} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${LIBNV_DECODE} \
-wget -O /tmp/${LIBNV_ENCODE} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${LIBNV_ENCODE} \
-wget -O /tmp/${LIBNV_FBC1} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${LIBNV_FBC1} \
-wget -O /tmp/${LIBNV_GL} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${LIBNV_GL} \
-wget -O /tmp/${NV_COMPUTE_UTILS} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${NV_COMPUTE_UTILS} \
-wget -O /tmp/${NV_DKMS} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${NV_DKMS} \
-wget -O /tmp/${NV_DRIVER} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${NV_DRIVER} \
-wget -O /tmp/${NV_KERNAL_COM} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${NV_KERNAL_COM} \
-wget -O /tmp/${NV_KERNAL_SOURCE} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${NV_KERNAL_SOURCE} \
-wget -O /tmp/${NV_DRIVERS} https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/${NV_DRIVERS} 
+        apt-get update
+        apt-get install cuda-drivers
 
+        https://learn.microsoft.com/en-us/azure/virtual-machines/linux/n-series-driver-setup
 
-dpkg -i /tmp/${LIBNV_COM} \
-
-dpkg -i /tmp/${LIBX} \
-dpkg -i /tmp/${LIBXEXT} \
-dpkg -i /tmp/${LIBNV_COMPUTE} \
-
-dpkg -i /tmp/${LIBNV_DECODE} \
-dpkg -i /tmp/${LIBNV_ENCODE} \
-dpkg -i /tmp/${LIBNV_FBC1} \
-dpkg -i /tmp/${LIBNV_GL} \
-dpkg -i /tmp/${NV_COMPUTE_UTILS} \
-dpkg -i /tmp/${NV_DKMS} \
-dpkg -i /tmp/${NV_DRIVER} \
-dpkg -i /tmp/${NV_KERNAL_COM} \
-dpkg -i /tmp/${NV_KERNAL_SOURCE} \
-dpkg -i /tmp/${NV_DRIVERS}
----
-
-apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/3bf863cc.pub
-
-rm -f /tmp/${CUDA_DRIVERS_PKG}
-rm -f /tmp/${CUDA_RUNTIME_PKG}
-rm -f /tmp/${CUDA_TOOLKIT_PKG}
-rm -f /tmp/${CUDA_DEMO_SUITE_PKG}
-rm -f /tmp/${CUDA_REPO_PKG}
-
----
-GLX_ALT=glx-alternative-nvidia_1.2.1_amd64.deb
-wget -O /tmp/${GLX_ALT} http://ftp.ca.debian.org/debian/pool/contrib/g/glx-alternatives/${GLX_ALT}
-dpkg -i /tmp/${GLX_ALT}
----
-
-apt-get update
-apt-get install cuda-drivers
-
-https://learn.microsoft.com/en-us/azure/virtual-machines/linux/n-series-driver-setup
-
----
-fix systemctl
-find / -name systemctl 2>/dev/null
-export PATH=$PATH:/host/bin
-
-echo $LD_LIBRARY_PATH
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/host/lib/systemd
-
-export XXX=$LD_LIBRARY_PATH:/host/lib/x86_64-linux-gnu
-
-libcap.so.2
-libip4tc.so.0
-libsystemd-shared-237.so
-```
+    1. fix systemctl
+        find / -name systemctl 2>/dev/null
+        export PATH=$PATH:/host/bin
+        echo $LD_LIBRARY_PATH
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/host/lib/systemd
+        export XXX=$LD_LIBRARY_PATH:/host/lib/x86_64-linux-gnu
+        libcap.so.2
+        libip4tc.so.0
+        libsystemd-shared-237.so
 
 
-### 4. Install NVIDIA Container Toolkit (via containerd)
+#### Install NVIDIA Container Toolkit (via containerd)
 
 > TODO: Verify Container Toolkit prerequisites:
 > * GNU/Linux x86_64 with kernel version > 3.10
@@ -416,12 +472,146 @@ ctr run --rm -t \
 ctr image pull docker.io/nvidia/cuda:11.0-base
 ctr run --rm --gpus 0 -t docker.io/nvidia/cuda:11.0-base cuda-11.0-base nvidia-smi
 
-### 5. Deploy Farm
+### 3. Deploy Farm
+
+1. Prerequisites
+    1. NGC CLI - download from https://ngc.nvidia.com/setup/installers/cli
+    1. NGC API Key
+        1. generate from https://ngc.nvidia.com/setup
+        1. login to ngc from cli with API Key
+            ```
+            ngc config set
+            ````
+    1. K8s Cluster
+1. connect to cluster
+    ```
+    az aks get-credentials \
+        --resource-group "dt-sandbox-resources" \
+        --name "ovfarm-dev-aks-cluster"
+    ```
+1. Define variables
+    ```
+    NAMESPACE="ovfarm"
+    NGC_API_KEY=<NGC_API_TOKEN>
+1. Create namespace
+    ```
+    kubectl create namespace $NAMESPACE
+    ```
+    * Question: can this be default namespace?
+1. Create [Docker Config Secret](https://kubernetes.io/docs/concepts/configuration/secret/#docker-config-secrets)
+    ```
+    kubectl create secret docker-registry my-registry-secret \
+        --namespace $NAMESPACE \
+        --docker-server="nvcr.io" \
+        --docker-username='$oauthtoken' \
+        --docker-password=$NGC_API_TOKEN
+    ```
+1. fetch helm chart
+    ```
+    helm fetch https://helm.ngc.nvidia.com/nvidia/omniverse/charts/omniverse-farm-0.3.2.tgz \
+        --username='$oauthtoken' \
+        --password=$NGC_API_TOKEN
+    ```
+1. install farm
+    ```
+    helm upgrade \
+        --install \
+            omniverse-farm \
+            omniverse-farm-0.3.2.tgz \
+        --create-namespace \
+        --namespace $NAMESPACE \
+        --values ./containers/farm/values.yaml
+    helm list -n ovfarm
+    ```
+1. [optionally] update deployment
+    ```
+    helm upgrade --values ./containers/farm/values.yaml omniverse-farm omniverse-farm-0.3.2.tgz --namespace ovfarm
+    ```
+1. Validate the installation.
+    1. Check that Pods are running
+        ```sh
+        kubectl get pods -o wide
+        ```
+    1. Ensure all pods in ready state
+        ```sh
+        kubectl -n $NAMESPACE wait --timeout=300s --for condition=Ready pods --all
+        
+        ```
+        * Note, controller takes a very long time to initialize
+    1. Check for errors for any pod that aren't ready
+        ```sh
+        kubectl describe pod <pod_name>
+        ```
+    1. Try endpoints!
+        ```
+        https://saz-dev.eastus.cloudapp.azure.com/
+        https://saz-dev.eastus.cloudapp.azure.com/graphql
+        ```
+    1. Check endpoints with curl pod
+        1. [run curl pod](https://kubernetes.io/docs/tutorials/services/connect-applications-service/#accessing-the-service)
+            ```sh
+            kubectl run curl --namespace=$NAMESPACE --image=radial/busyboxplus:curl -i --tty -- sh
+            # use "exec" if curl pod already exists
+            kubectl exec curl --namespace=$NAMESPACE -i --tty -- sh
+            ```
+        1. check endpoints
+            ```sh
+            [ root@curl:/ ]$ check_endpoint() {
+                url=$1
+                curl -s -o /dev/null "$url" && echo -e "[UP]\t${url}" || echo -e "[DOWN]\t${url}"
+            }
+
+            [ root@curl:/ ]$ check_farm_status() {
+                echo "======================================================================"
+                echo "Farm status:"
+                echo "----------------------------------------------------------------------"
+                check_endpoint "farm.23711a66dc7f46649e88.eastus.aksapp.io/queue/management/agents/status"
+                check_endpoint "farm.23711a66dc7f46649e88.eastus.aksapp.io/queue/management/dashboard/status"
+                check_endpoint "farm.23711a66dc7f46649e88.eastus.aksapp.io/queue/management/jobs/status"
+                check_endpoint "farm.23711a66dc7f46649e88.eastus.aksapp.io/queue/management/jobs/load"
+                check_endpoint "farm.23711a66dc7f46649e88.eastus.aksapp.io/queue/management/logs/status"
+                check_endpoint "farm.23711a66dc7f46649e88.eastus.aksapp.io/queue/management/retries/status"
+                check_endpoint "farm.23711a66dc7f46649e88.eastus.aksapp.io/queue/management/tasks/status"
+                check_endpoint "farm.23711a66dc7f46649e88.eastus.aksapp.io/queue/management/tasks/list?status=submitted"
+                echo "======================================================================"
+            }
+
+            [ root@curl:/ ]$ check_farm_status
+            ```
+    1. log into queue management dashboard
+        http://farm.23711a66dc7f46649e88.eastus.aksapp.io/queue/management/dashboard
+        http://farm.23711a66dc7f46649e88.eastus.aksapp.io/queue/management/ui/
+    1. Find api docs
+        http://farm.23711a66dc7f46649e88.eastus.aksapp.io/docs
+        * Issue Cannot find docs.
+    1. Explore ConfigMaps
+
+
+### 4. Submit job
+
+1. Download sample job
+    ```
+    download the example df.kit job and sample upload script:
+    ```
+1. Get Jobs API Key
+    ```
+    kubectl get cm omniverse-farm-jobs -o yaml -n $NAMESPACE | grep api_key
+    ```
 
 ## Troubleshooting 
 
 ### How to get current installed drivers?
 ### Are nvidia drivers pre-installed on NV series VMs?
+### azurerm terrafrom provider support for enabling aks preview feature GPUDedicatedVHDPreview using terraform.
+
+* pending [azurerm custom header support](https://github.com/hashicorp/terraform-provider-azurerm/issues/6793)
+* [failed PR](https://github.com/hashicorp/terraform-provider-azurerm/pull/14178) tried to fix this.
+* pending [AKS custom feature support](https://github.com/Azure/AKS/issues/2757)
+* possible work around using [xpd provider](https://registry.terraform.io/providers/0x2b3bfa0/xpd/latest/docs/guides/test)
+
+### ISSUE: Cannot find swagger docs at `/docs` after deploying helm chart to AKS
+
+Helm chart does not seem to deploy a swagger docs. 
 
 ## ref
 
@@ -434,6 +624,11 @@ ctr run --rm --gpus 0 -t docker.io/nvidia/cuda:11.0-base cuda-11.0-base nvidia-s
 * https://docs.nvidia.com/datacenter/tesla/tesla-installation-notes/index.html
 * https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#post-installation-actions
 * https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/
+
+### configure GPU nodes
+
+* https://learn.microsoft.com/en-us/azure/aks/gpu-cluster#manually-install-the-nvidia-device-plugin
+* https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/aks/gpu-cluster.md
 
 ### Setting up VMs
 

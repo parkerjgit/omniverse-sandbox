@@ -21,14 +21,14 @@ resource "azurerm_kubernetes_cluster" "aks" {
   }
 
   default_node_pool {
-    name       = "nodepool"
-    node_count = 2
+    name       = "cpunodepool"
+    node_count = 1
 
-    # see https://learn.microsoft.com/en-us/azure/virtual-machines/sizes-gpu
-    vm_size    = "Standard_NV6" 
-    # vm_size    = "Standard_NV12s_v3" # exceeds approved Total Regional Cores quota
+    # https://learn.microsoft.com/en-us/azure/virtual-machines/av2-series
+    # Note, System node pool must use VM sku with more than 2 cores and 4GB memory.
+    vm_size    = "Standard_A2_v2" 
 
-    node_labels = {vm_type: "GPU"}
+    node_labels = {vm_type: "CPU"}
     os_sku = "Ubuntu"
   }
 

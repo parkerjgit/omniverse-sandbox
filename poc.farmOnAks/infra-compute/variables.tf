@@ -18,13 +18,13 @@ variable "location" {
 variable "namespace" {
   description = "Resource namespace (prefix)"
   type        = string
-  default     = "faks"
+  default     = "ovfarm"
 }
 
 variable "project" {
   description = "Project name (no spaces)"
   type        = string
-  default     = "omniverse-farm-on-aks"
+  default     = "omniverse-farm-poc"
 }
 
 variable "ssh_public_key" {

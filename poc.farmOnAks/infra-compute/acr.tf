@@ -1,6 +1,6 @@
 locals {
   acr_namespace = "acr"
-  acr_container_registry_name = "faksacr"
+  acr_container_registry_name = "ovfarmacr"
 }
 
 resource "azurerm_container_registry" "acr" {

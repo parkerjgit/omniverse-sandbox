@@ -1,0 +1,18 @@
+global:
+  imagePullSecrets:
+    - name: my-registry-secret
+  ingress: 
+    host: "farm.23711a66dc7f46649e88.eastus.aksapp.io"
+    annotations:
+      kubernetes.io/ingress.class: addon-http-application-routing
+
+controller:
+  serviceConfig:
+    k8s:
+      jobTemplateSpecOverrides:
+        imagePullSecrets:
+          - name: my-registry-secret
+
+dashboard:
+  nodeSelector:
+    vm_type: CPU

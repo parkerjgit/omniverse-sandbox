@@ -1,0 +1,21 @@
+[job.df]
+name = "df"
+job_type = "base"
+command = "/bin/df"
+job_spec_path = "/df.toml"
+args = []
+task_function = ""
+log_to_stdout = true
+extension_paths = []
+headless = true
+active = true
+unresolved_command_path = "/bin/df"
+success_return_codes = [ 0,]
+working_directory = ""
+container = "busybox:1.35"
+
+[job.df.env]
+
+[job.df.allowed_args]
+
+[job.df.capacity_requirements]
