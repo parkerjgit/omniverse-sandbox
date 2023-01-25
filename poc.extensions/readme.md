@@ -120,6 +120,63 @@
     kit headless-service.kit
     ```
 
+## Containerized Service
+
+1. [If nec.] Generate API Key [here](https://ngc.nvidia.com/setup/api-key)
+1. Login to nvcr.io using API Key and username '$oauthtoken'
+    ```
+    docker login nvcr.io
+    ```
+1. Create a [dockerfile](./containerized-service/dockerfile) that adds [hello_world.py](./containerized-service/hello_world.py) to [KIT SDK base image](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/omniverse/containers/kit)
+    ```dockerfile
+    # Start with Kit Base image
+    FROM nvcr.io/nvidia/omniverse/kit:103.5.1
+
+    # Install services dependencies on image (omni.services does not ship with Kit)
+    # This code is pulled from a extension registry and the --ext-precache-mode will pull down the extensions and exit.
+    RUN /opt/nvidia/omniverse/kit-sdk-launcher/kit \
+        --ext-precache-mode \
+        --enable omni.services.core \
+        --enable omni.services.transport.server.http \
+        --/exts/omni.kit.registry.nucleus/registries/0/name=kit/services \
+        --/exts/omni.kit.registry.nucleus/registries/0/url=https://dw290v42wisod.cloudfront.net/exts/kit/services \
+        --allow-root
+
+    # Add script to image
+    COPY hello_world.py /hello_world.py
+
+    # Declare *intention* for container to use port 8011 at runtime
+    EXPOSE 8011/tcp
+
+    # Configure container as an executable
+    ENTRYPOINT [ \
+        "/opt/nvidia/omniverse/kit-sdk-launcher/kit", \
+        "--exec", "hello_world.py", \
+        "--enable omni.services.core", \ 
+        "--enable", "omni.services.transport.server.http", \
+        "--allow-root"]
+    ```
+1. Build a new image from dockerfile named "hello-world"
+    ```sh
+    docker build -t hello-world .
+    docker images hello-world
+    ```
+1. Create a new executable container from latest hello-world image and run it locally on port 8011.
+    ```
+    docker run -it -p 8011:8011 hello-world:latest
+    ```
+1. Navigate to OpenAPI docs at `http://localhost:8011/docs` which now include `/hello-world` endpoint.
+1. Test endpoint:
+    ```
+    curl -X 'GET' \
+        'http://localhost:8011/hello-world' \
+        -H 'accept: application/json'
+    ```
+
+## Deploy Containerized App to ACI
+
+todo
+
 ## Ref
 
 * [Omniverse Services Getting Started](https://docs.omniverse.nvidia.com/prod_services/prod_services/design/getting_started.html)
