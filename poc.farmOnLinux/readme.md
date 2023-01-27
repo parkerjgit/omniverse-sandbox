@@ -12,6 +12,13 @@
     2. Configure Jobs directory (this is where scripts and kits go)
     3. Navigate to dashboard at: `http://<agent_url>/agent/management/ui/`
 
+## Running Farm (after setup)
+
+```
+/opt/ove/ov-farm-queue/queue.sh &
+/opt/ove/ov-farm-agent/agent.sh &
+```
+
 ## Setup Queue
 
 1. Install Dependencies

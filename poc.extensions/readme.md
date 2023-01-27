@@ -175,7 +175,59 @@
 
 ## Deploy Containerized App to ACI
 
-todo
+1. Host in container registry
+    1. [if nec] Create an Azure Container Registry (ACR)
+        ```sh
+        # az acr create --resource-group <resource-group> --name <acrName> --sku Basic
+        az acr create --resource-group dt-sandbox-resources --name ovfarmacr --sku Basic --admin-enabled true
+        ```
+    1. Log in to container registry
+        ```sh
+        # az acr login --name <acrName>
+        az acr login --name ovfarmacr
+        ```
+    1. Tag image
+        ```sh
+        # get full name of ACR instance (e.g., ovfarmacr.azurecr.io)
+        az acr show --name ovfarmacr --query loginServer --output table
+
+        # docker tag <source_image>:<tag> <acr_name>.azurecr.io/<target_image>:<tag>
+        docker tag hello-world:latest ovfarmacr.azurecr.io/hello-world:latest
+        ```
+    1. Push image to container registry
+        ```sh
+        docker push ovfarmacr.azurecr.io/hello-world:latest
+
+        # verify image is now stored in registry
+        az acr repository show --name ovfarmacr --repository hello-world
+        az acr repository list --name ovfarmacr --output table
+        az acr repository show-tags --name ovfarmacr --repository hello-world --output table
+        ```
+1. Deploy App (using az container create)
+    1. Get ACR credentials
+        ```
+        az acr credential show -g dt-sandbox-resources -n ovfarmacr
+        ```
+    1. Create Container Group
+        ```
+        ACR_PASSWORD=<acr_password>
+        az container create \
+            --resource-group dt-sandbox-resources \
+            --name ov-demo-microservice \
+            --image ovfarmacr.azurecr.io/hello-world:latest \
+            --registry-login-server ovfarmacr.azurecr.io \
+            --registry-username ovfarmacr \
+            --registry-password $ACR_PASSWORD \
+            --ip-address Public \
+            --dns-name-label ov-demo-microservice \
+            --ports 8011
+        ```
+    1. test endpoints
+        ```
+        http://ov-demo-microservice.eastus.azurecontainer.io:8011/docs
+        http://ov-demo-microservice.eastus.azurecontainer.io:8011/hello-world
+        http://ov-demo-microservice.eastus.azurecontainer.io:8011/status
+        ```
 
 ## Ref
 

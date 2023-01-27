@@ -54,3 +54,5 @@ override.tf.json
 
 # Ignore drivers folders anywhere
 **/drivers
+
+**/ngc-cli

@@ -475,7 +475,15 @@ ctr run --rm --gpus 0 -t docker.io/nvidia/cuda:11.0-base cuda-11.0-base nvidia-s
 ### 3. Deploy Farm
 
 1. Prerequisites
-    1. NGC CLI - download from https://ngc.nvidia.com/setup/installers/cli
+    1. NGC CLI 
+        1. windows - download from https://ngc.nvidia.com/setup/installers/cli
+        1. wsl/linux (amd64):
+            ```
+            wget --content-disposition https://ngc.nvidia.com/downloads/ngccli_linux.zip && unzip ngccli_linux.zip && chmod u+x ngc-cli/ngc
+            find ngc-cli/ -type f -exec md5sum {} + | LC_ALL=C sort | md5sum -c ngc-cli.md5
+            echo "export PATH=\"\$PATH:$(pwd)/ngc-cli\"" >> ~/.bash_profile && source ~/.bash_profile
+            ngc --version
+            ```
     1. NGC API Key
         1. generate from https://ngc.nvidia.com/setup
         1. login to ngc from cli with API Key
@@ -589,6 +597,13 @@ ctr run --rm --gpus 0 -t docker.io/nvidia/cuda:11.0-base cuda-11.0-base nvidia-s
 
 ### 4. Submit job
 
+1. Prerequisites
+    * Python
+    * Script dependancies
+        ```
+        pip install requests
+        pip install toml
+        ```
 1. Download sample job
     ```
     download the example df.kit job and sample upload script:
@@ -596,7 +611,41 @@ ctr run --rm --gpus 0 -t docker.io/nvidia/cuda:11.0-base cuda-11.0-base nvidia-s
 1. Get Jobs API Key
     ```
     kubectl get cm omniverse-farm-jobs -o yaml -n $NAMESPACE | grep api_key
+    FARM_API_KEY=<api_key>
     ```
+1. Upload job definition to cluster
+    ```
+    FARM_BASE_URL="http://farm.23711a66dc7f46649e88.eastus.aksapp.io/"
+    python3 ./job_definition_upload.py df.kit --farm-url=$FARM_BASE_URL --api-key=$FARM_API_KEY
+    ```
+1. Get Job definitions
+    ```
+    curl -X 'GET' \
+    "${FARM_BASE_URL}/agent/operator/job/definitions" \
+    -H 'accept: application/json'
+    ```
+1. Submit job 
+    ```
+    curl -X "POST" \
+    "${FARM_BASE_URL}/queue/management/tasks/submit" \
+    -H 'Accept: application/json' \
+    -H 'Content-Type: application/json' \
+    -d '{
+    "user": "testuser",
+    "task_type": "df",
+    "task_args": {},
+    "metadata": {
+        "_retry": {
+        "is_retryable": false
+        }
+    },
+    "status": "submitted"
+    }'
+    ```
+
+### 5. Submit GPU test job
+
+https://catalog.ngc.nvidia.com/orgs/nvidia/teams/omniverse-farm/resources/gpu_verification/quick-start-guide
 
 ## Troubleshooting 
 
@@ -612,6 +661,13 @@ ctr run --rm --gpus 0 -t docker.io/nvidia/cuda:11.0-base cuda-11.0-base nvidia-s
 ### ISSUE: Cannot find swagger docs at `/docs` after deploying helm chart to AKS
 
 Helm chart does not seem to deploy a swagger docs. 
+
+### ISSUE: kubectl not working on wsl2
+
+fix is to copy over kube config
+```
+mkdir ~/.kube \ && cp /mnt/c/Users/nycjyp/.kube/config ~/.kube
+```
 
 ## ref
 
