@@ -120,6 +120,15 @@
     kit headless-service.kit
     ```
 
+## Advanced Service
+
+1. Prerequisites
+    * Kit installed and added to path
+1. Clone [Omniverse Kit Extensions Project Template](https://github.com/NVIDIA-Omniverse/kit-extension-template) into project root
+    ```
+    git clone git@github.com:NVIDIA-Omniverse/kit-extension-template.git .
+    ```
+
 ## Containerized Service
 
 1. [If nec.] Generate API Key [here](https://ngc.nvidia.com/setup/api-key)
@@ -236,3 +245,4 @@
 * [Omniverse microservice tutorials, 2](http://localhost:8211/tutorials/docs/source/extensions/omni.services.tutorials.two/docs/README.html)
 * [Omniverse Kit Extensions Project Template](https://github.com/NVIDIA-Omniverse/kit-extension-template)
 * [Companion Code to A Deep Dive into Building Microservices with Omniverse](https://github.com/NVIDIA-Omniverse/deep-dive-into-microservices)
+* [Tutorial: Implementing a Viewport Capture Service](https://docs.omniverse.nvidia.com/prod_services/prod_services/tutorials/viewport-capture/index.html)
