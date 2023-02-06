@@ -1,0 +1,1061 @@
+# Default values for ov-farm.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  # -- Global image pull secrets used within the services.
+  # NOTE: Job's created by the Controller do not use the global image pull secrets.
+  # to specify secrets for those pods use "jobTemplateSpecOverrides.imagePullSecrets" setting.
+  imagePullSecrets: []
+  # - name: global-secret
+
+  # -- Specify the services transport host. For IPv6 use "::".
+  transportHost: 0.0.0.0
+
+  ingress:
+    # -- Global Ingress className.
+    className: ""
+    # -- Global Ingress annotations.
+    annotations:
+      kubernetes.io/ingress.class: "nginx"
+    # -- Global Ingress host.
+    host: ""
+    # -- Global Ingress paths.
+    paths: []
+    # -- Global Ingress tls.
+    tls: []
+
+
+agents:
+  name: agents
+
+  # -- Number of replicas.
+  replicaCount: 1
+
+  image:
+    # -- Image repository.
+    repository: "nvcr.io/nvidia/omniverse/farm-queue"
+    # -- Image pull policy.
+    pullPolicy: IfNotPresent
+    # -- Image tag.
+    tag: "104.0.1"
+
+  initImage:
+    # -- Init image repository. Must have netcat installed.
+    repository: "busybox"
+    # -- Init image tag.
+    tag: "1.35"
+
+  # -- Image Pull Secrets.
+  imagePullSecrets: []
+  # - name: agent-secret
+
+  # -- Log level for the application (valid levels; Info, Debug, Verbose, Warning, Error)
+  logLevel: "Info"
+
+  # -- Partially override .fullname template (maintains the release name)
+  nameOverride: ""
+
+  # -- Full override .fullname template
+  fullnameOverride: ""
+
+  # -- Pod annotations.
+  # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  podAnnotations: {}
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  podSecurityContext: {}
+    # fsGroup: 2000
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  ingress:
+    # -- Enables the creation of Ingress resource.
+    enabled: True
+
+  service:
+    # -- Kubernetes service type.
+    type: ClusterIP
+    # -- Service port.
+    port: 80
+    # -- Container port.
+    containerPort: 80
+    # -- Name of the service.
+    name: agents
+    # -- Url prefix for the service
+    url_prefix: "/queue/management/agents"
+
+  # -- Container resource requests and limits.
+  # https://kubernetes.io/docs/user-guide/compute-resources/
+  resources: {}
+
+  # -- Node labels for pod assignment.
+  # https://kubernetes.io/docs/user-guide/node-selection/
+  nodeSelector: {}
+
+  # -- Tolerations for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+  # -- Affinity for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
+  # -- Configuration specific to this service.
+  serviceConfig: {}
+
+  monitoring:
+    # -- Enables the creation of ServiceMonitor resource.
+    enabled: false
+    # -- Prometheus namespace.
+    prometheusNamespace: "monitoring"
+
+
+controller:
+  name: controller
+
+  # -- Number of replicas.
+  replicaCount: 1
+
+  image:
+    # -- Image repository.
+    repository: "nvcr.io/nvidia/omniverse/farm-agent-k8s"
+    # -- Image pull policy.
+    pullPolicy: IfNotPresent
+    # -- Image tag.
+    tag: "104.0.3"
+
+  initImage:
+    # -- Init image repository. Must have netcat installed.
+    repository: "busybox"
+    # -- Init image tag.
+    tag: "1.35"
+
+  # -- Image Pull Secrets
+  imagePullSecrets: []
+  # - name: controller-secret
+
+  # -- Log level for the application (valid levels; Info, Debug, Verbose, Warning, Error)
+  logLevel: "Info"
+
+  # -- Partially override .fullname template (maintains the release name)
+  nameOverride: ""
+
+  # -- Full override .fullname template
+  fullnameOverride: ""
+
+  # -- Pod annotations.
+  # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  podAnnotations: {}
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  podSecurityContext: {}
+    # fsGroup: 2000
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  service:
+    # -- Kubernetes service type.
+    type: ClusterIP
+    # -- Service port.
+    port: 80
+    # -- Container port.
+    containerPort: 80
+    # -- Name of the service.
+    name: controller
+
+  # -- Container resource requests and limits.
+  # https://kubernetes.io/docs/user-guide/compute-resources/
+  resources: {}
+
+  # -- Node labels for pod assignment.
+  # https://kubernetes.io/docs/user-guide/node-selection/
+  nodeSelector: {}
+
+  # -- Tolerations for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+  # -- Affinity for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
+  # -- Configuration specific to this service.
+  serviceConfig:
+    capacity:
+      # -- Specify the max number of jobs the controller is allowed to run.
+      max_capacity: 32
+    k8s:
+      # -- Specify the Jobs' TTL Seconds After Finished
+      # https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/#ttl-after-finished-controller
+      jobTTLSecondsAfterFinished: 600
+      # -- Specify Job template spec overrides, these are fields under (spec.template.spec)
+      jobTemplateSpecOverrides: {}
+      #  imagePullSecrets: []
+      #  affinity: {}
+      #  nodeSelector: {}
+      #  securityContext: {}
+      #  tolerations: []
+
+      # -- Specify Container spec overrides, these are fields under (spec.template.spec.containers)
+      containerSpecOverrides: {}
+      #  securityContext: {}
+      #  resources: {}
+
+  monitoring:
+    # -- Enables the creation of ServiceMonitor resource.
+    enabled: false
+    # -- Prometheus namespace.
+    prometheusNamespace: "monitoring"
+
+  role:
+    name: "controller-scheduler"
+
+  roleBinding:
+    name: "controller-scheduler"
+
+  serviceAccount:
+    name: "controller-scheduler"
+
+  services_base_url: "/queue/management"
+
+
+dashboard:
+  name: dashboard
+
+  # -- Number of replicas.
+  replicaCount: 1
+
+  image:
+    # -- Image repository.
+    repository: "nvcr.io/nvidia/omniverse/farm-queue"
+    # -- Image pull policy.
+    pullPolicy: IfNotPresent
+    # -- Image tag.
+    tag: "104.0.1"
+
+  # -- Image Pull Secrets
+  imagePullSecrets: []
+  # - name: dashboard-secret
+
+  # -- Log level for the application (valid levels; Info, Debug, Verbose, Warning, Error)
+  logLevel: "Info"
+
+  # -- Partially override .fullname template (maintains the release name)
+  nameOverride: ""
+
+  # -- Full override .fullname template
+  fullnameOverride: ""
+
+  # -- Pod annotations.
+  # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  podAnnotations: {}
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  podSecurityContext: {}
+    # fsGroup: 2000
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  ingress:
+    # -- Enables the creation of Ingress resource.
+    enabled: True
+
+  service:
+    # -- Kubernetes service type.
+    type: ClusterIP
+    # -- Service port.
+    port: 80
+    # -- Container port.
+    containerPort: 80
+    # -- Name of the service.
+    name: dashboard
+    # -- Url prefix for the service
+    url_prefix: "/queue/management/dashboard/"
+
+  # -- Container resource requests and limits.
+  # https://kubernetes.io/docs/user-guide/compute-resources/
+  resources: {}
+
+  # -- Node labels for pod assignment.
+  # https://kubernetes.io/docs/user-guide/node-selection/
+  nodeSelector: {}
+
+  # -- Tolerations for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+  # -- Affinity for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
+  # -- Configuration specific to this service.
+  serviceConfig: {}
+
+  monitoring:
+    # -- Enables the creation of ServiceMonitor resource.
+    enabled: false
+    # -- Prometheus namespace.
+    prometheusNamespace: "monitoring"
+
+
+jobs:
+  name: jobs
+
+  # -- Number of replicas.
+  replicaCount: 1
+
+  image:
+    # -- Image repository.
+    repository: "nvcr.io/nvidia/omniverse/farm-queue"
+    # -- Image pull policy.
+    pullPolicy: IfNotPresent
+    # -- Image tag.
+    tag: "104.0.1"
+
+  initImage:
+    # -- Init image repository. Must have netcat installed.
+    repository: "busybox"
+    # -- Init image tag.
+    tag: "1.35"
+
+  # -- Image Pull Secrets
+  imagePullSecrets: []
+  # - name: job-secret
+
+  # -- Log level for the application (valid levels; Info, Debug, Verbose, Warning, Error)
+  logLevel: "Info"
+
+  # -- Partially override .fullname template (maintains the release name)
+  nameOverride: ""
+
+  # -- Full override .fullname template
+  fullnameOverride: ""
+
+  # -- Pod annotations.
+  # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  podAnnotations: {}
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  podSecurityContext: {}
+    # fsGroup: 2000
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  ingress:
+    # -- Enables the creation of Ingress resource.
+    enabled: True
+
+  service:
+    # -- Kubernetes service type.
+    type: ClusterIP
+    # -- Service port.
+    port: 80
+    # -- Container port.
+    containerPort: 80
+    # -- Name of the service.
+    name: jobs
+    # -- Url prefix for the service
+    url_prefix: "/queue/management/jobs"
+
+  # -- Container resource requests and limits.
+  # https://kubernetes.io/docs/user-guide/compute-resources/
+  resources: {}
+
+  # -- Node labels for pod assignment.
+  # https://kubernetes.io/docs/user-guide/node-selection/
+  nodeSelector: {}
+
+  # -- Tolerations for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+  # -- Affinity for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
+  # -- Configuration specific to this service.
+  serviceConfig:
+    # -- Job's API key, if unspecified one will be automatically generated.
+    apiKey: null
+
+  monitoring:
+    # -- Enables the creation of ServiceMonitor resource.
+    enabled: false
+    # -- Prometheus namespace.
+    prometheusNamespace: "monitoring"
+
+
+logs:
+  name: logs
+
+  # -- Number of replicas.
+  replicaCount: 1
+
+  image:
+    # -- Image repository.
+    repository: "nvcr.io/nvidia/omniverse/farm-queue"
+    # -- Image pull policy.
+    pullPolicy: IfNotPresent
+    # -- Image tag.
+    tag: "104.0.1"
+
+  # -- Image Pull Secrets
+  imagePullSecrets: []
+  # - name: logs-secret
+
+  # -- Log level for the application (valid levels; Info, Debug, Verbose, Warning, Error)
+  logLevel: "Info"
+
+  # -- Partially override .fullname template (maintains the release name)
+  nameOverride: ""
+
+  # -- Full override .fullname template
+  fullnameOverride: ""
+
+  # -- Pod annotations.
+  # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  podAnnotations: {}
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  podSecurityContext: {}
+    # fsGroup: 2000
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  ingress:
+    # -- Enables the creation of Ingress resource.
+    enabled: True
+
+  service:
+    # -- Kubernetes service type.
+    type: ClusterIP
+    # -- Service port.
+    port: 80
+    # -- Container port.
+    containerPort: 80
+    # -- Name of the service.
+    name: logs
+    # -- Url prefix for the service
+    url_prefix: "/queue/management/logs"
+
+  # -- Container resource requests and limits.
+  # https://kubernetes.io/docs/user-guide/compute-resources/
+  resources: {}
+
+  # -- Node labels for pod assignment.
+  # https://kubernetes.io/docs/user-guide/node-selection/
+  nodeSelector: {}
+
+  # -- Tolerations for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+  # -- Affinity for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
+  # -- Configuration specific to this service.
+  serviceConfig: {}
+
+  monitoring:
+    # -- Enables the creation of ServiceMonitor resource.
+    enabled: false
+    # -- Prometheus namespace.
+    prometheusNamespace: "monitoring"
+
+
+metrics:
+  name: metrics
+
+  # -- Number of replicas.
+  replicaCount: 1
+
+  image:
+    # -- Image repository.
+    repository: "nvcr.io/nvidia/omniverse/farm-queue"
+    # -- Image pull policy.
+    pullPolicy: IfNotPresent
+    # -- Image tag.
+    tag: "104.0.1"
+
+  # -- Image Pull Secrets
+  imagePullSecrets: []
+  # - name: metrics-secret
+
+  # -- Log level for the application (valid levels; Info, Debug, Verbose, Warning, Error)
+  logLevel: "Info"
+
+  # -- Partially override .fullname template (maintains the release name)
+  nameOverride: ""
+
+  # -- Full override .fullname template
+  fullnameOverride: ""
+
+  # -- Pod annotations.
+  # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  podAnnotations: {}
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  podSecurityContext: {}
+    # fsGroup: 2000
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  ingress:
+    # -- Enables the creation of Ingress resource.
+    enabled: True
+
+  service:
+    # -- Kubernetes service type.
+    type: ClusterIP
+    # -- Service port.
+    port: 80
+    # -- Container port.
+    containerPort: 80
+    # -- Name of the service.
+    name: metrics
+    # -- Url prefix for the service
+    url_prefix: "/queue/management/metrics"
+
+  # -- Container resource requests and limits.
+  # https://kubernetes.io/docs/user-guide/compute-resources/
+  resources: {}
+
+  # -- Node labels for pod assignment.
+  # https://kubernetes.io/docs/user-guide/node-selection/
+  nodeSelector: {}
+
+  # -- Tolerations for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+  # -- Affinity for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
+  # -- Configuration specific to this service.
+  serviceConfig: {}
+
+  monitoring:
+    # -- Enables the creation of ServiceMonitor resource.
+    enabled: false
+    # -- Prometheus namespace.
+    prometheusNamespace: "monitoring"
+
+  prometheus_url_prefix: "/queue/utilities/metrics/prometheus"
+
+
+retries:
+  name: retries
+
+  # -- Number of replicas.
+  replicaCount: 1
+
+  image:
+    # -- Image repository.
+    repository: "nvcr.io/nvidia/omniverse/farm-queue"
+    # -- Image pull policy.
+    pullPolicy: IfNotPresent
+    # -- Image tag.
+    tag: "104.0.1"
+
+  initImage:
+    # -- Init image repository. Must have netcat installed.
+    repository: "busybox"
+    # -- Init image tag.
+    tag: "1.35"
+
+  # -- Image Pull Secrets
+  imagePullSecrets: []
+  # - name: retries-secret
+
+  # -- Log level for the application (valid levels; Info, Debug, Verbose, Warning, Error)
+  logLevel: "Info"
+
+  # -- Partially override .fullname template (maintains the release name)
+  nameOverride: ""
+
+  # -- Full override .fullname template
+  fullnameOverride: ""
+
+  # -- Pod annotations.
+  # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  podAnnotations: {}
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  podSecurityContext: {}
+    # fsGroup: 2000
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  ingress:
+    # -- Enables the creation of Ingress resource.
+    enabled: True
+
+  service:
+    # -- Kubernetes service type.
+    type: ClusterIP
+    # -- Service port.
+    port: 80
+    # -- Container port.
+    containerPort: 80
+    # -- Name of the service.
+    name: retries
+    # -- Url prefix for the service
+    url_prefix: "/queue/management/retries"
+
+  # -- Container resource requests and limits.
+  # https://kubernetes.io/docs/user-guide/compute-resources/
+  resources: {}
+
+  # -- Node labels for pod assignment.
+  # https://kubernetes.io/docs/user-guide/node-selection/
+  nodeSelector: {}
+
+  # -- Tolerations for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+  # -- Affinity for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
+  # -- Configuration specific to this service.
+  serviceConfig: {}
+
+  monitoring:
+    # -- Enables the creation of ServiceMonitor resource.
+    enabled: false
+    # -- Prometheus namespace.
+    prometheusNamespace: "monitoring"
+
+
+settings:
+  name: settings
+
+  # -- Number of replicas.
+  replicaCount: 1
+
+  image:
+    # -- Image repository.
+    repository: "nvcr.io/nvidia/omniverse/farm-queue"
+    # -- Image pull policy.
+    pullPolicy: IfNotPresent
+    # -- Image tag.
+    tag: "104.0.1"
+
+  # -- Image Pull Secrets
+  imagePullSecrets: []
+  # - name: settings-secret
+
+  # -- Log level for the application (valid levels; Info, Debug, Verbose, Warning, Error)
+  logLevel: "Info"
+
+  # -- Partially override .fullname template (maintains the release name)
+  nameOverride: ""
+
+  # -- Full override .fullname template
+  fullnameOverride: ""
+
+  # -- Pod annotations.
+  # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  podAnnotations: {}
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  podSecurityContext: {}
+    # fsGroup: 2000
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  ingress:
+    # -- Enables the creation of Ingress resource.
+    enabled: True
+
+  service:
+    # -- Kubernetes service type.
+    type: ClusterIP
+    # -- Service port.
+    port: 80
+    # -- Container port.
+    containerPort: 80
+    # -- Name of the service.
+    name: settings
+    # -- Url prefix for the service
+    url_prefix: "/queue/management/settings"
+
+  # -- Container resource requests and limits.
+  # https://kubernetes.io/docs/user-guide/compute-resources/
+  resources: {}
+
+  # -- Node labels for pod assignment.
+  # https://kubernetes.io/docs/user-guide/node-selection/
+  nodeSelector: {}
+
+  # -- Tolerations for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+  # -- Affinity for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
+  # -- Configuration specific to this service.
+  serviceConfig:
+    exposed_settings:
+      # -- Specify advanced rendering feature for the farm.
+      advanced_rendering_features: {}
+
+  monitoring:
+    # -- Enables the creation of ServiceMonitor resource.
+    enabled: false
+    # -- Prometheus namespace.
+    prometheusNamespace: "monitoring"
+
+
+tasks:
+  name: tasks
+
+  # -- Number of replicas.
+  replicaCount: 1
+
+  image:
+    # -- Image repository.
+    repository: "nvcr.io/nvidia/omniverse/farm-queue"
+    # -- Image pull policy.
+    pullPolicy: IfNotPresent
+    # -- Image tag.
+    tag: "104.0.1"
+
+  initImage:
+    # -- Init image repository. Must have netcat installed.
+    repository: "busybox"
+    # -- Init image tag.
+    tag: "1.35"
+
+  # -- Image Pull Secrets
+  imagePullSecrets: []
+  # - name: tasks-secret
+
+  # -- Log level for the application (valid levels; Info, Debug, Verbose, Warning, Error)
+  logLevel: "Info"
+
+  # -- Partially override .fullname template (maintains the release name)
+  nameOverride: ""
+
+  # -- Full override .fullname template
+  fullnameOverride: ""
+
+  # -- Pod annotations.
+  # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  podAnnotations: {}
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  podSecurityContext: {}
+    # fsGroup: 2000
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  ingress:
+    # -- Enables the creation of Ingress resource.
+    enabled: True
+
+  service:
+    # -- Kubernetes service type.
+    type: ClusterIP
+    # -- Service port.
+    port: 80
+    # -- Container port.
+    containerPort: 80
+    # -- Name of the service.
+    name: tasks
+    # -- Url prefix for the service
+    url_prefix: "/queue/management/tasks"
+
+  # -- Container resource requests and limits.
+  # https://kubernetes.io/docs/user-guide/compute-resources/
+  resources: {}
+
+  # -- Node labels for pod assignment.
+  # https://kubernetes.io/docs/user-guide/node-selection/
+  nodeSelector: {}
+
+  # -- Tolerations for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+  # -- Affinity for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
+  # -- Configuration specific to this service.
+  serviceConfig: {}
+
+  monitoring:
+    # -- Enables the creation of ServiceMonitor resource.
+    enabled: false
+    # -- Prometheus namespace.
+    prometheusNamespace: "monitoring"
+
+
+ui:
+  name: ui
+
+  enabled: true
+
+  # -- Number of replicas.
+  replicaCount: 1
+
+  image:
+    # -- Image repository.
+    repository: "nvcr.io/nvidia/omniverse/farm-queue"
+    # -- Image pull policy.
+    pullPolicy: IfNotPresent
+    # -- Image tag.
+    tag: "104.0.1"
+
+  # -- Image Pull Secrets
+  imagePullSecrets: []
+  # - name: ui-secret
+
+  # -- Log level for the application (valid levels; Info, Debug, Verbose, Warning, Error)
+  logLevel: "Info"
+
+  # -- Partially override .fullname template (maintains the release name)
+  nameOverride: ""
+
+  # -- Full override .fullname template
+  fullnameOverride: ""
+
+  # -- Pod annotations.
+  # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  podAnnotations: {}
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  podSecurityContext: {}
+    # fsGroup: 2000
+
+  # -- Security Context.
+  # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  ingress:
+    # -- Enables the creation of Ingress resource.
+    enabled: True
+
+  service:
+    # -- Kubernetes service type.
+    type: ClusterIP
+    # -- Service port.
+    port: 80
+    # -- Container port.
+    containerPort: 80
+    # -- Name of the service.
+    name: ui
+    # -- Url prefix for the service
+    url_prefix: "/queue/management/ui"
+
+  # -- Container resource requests and limits.
+  # https://kubernetes.io/docs/user-guide/compute-resources/
+  resources: {}
+
+  # -- Node labels for pod assignment.
+  # https://kubernetes.io/docs/user-guide/node-selection/
+  nodeSelector: {}
+
+  # -- Tolerations for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+  # -- Affinity for pod assignment.
+  # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
+  # -- Configuration specific to this service.
+  serviceConfig: {}
+
+  monitoring:
+    # -- Enables the creation of ServiceMonitor resource.
+    enabled: false
+    # -- Prometheus namespace.
+    prometheusNamespace: "monitoring"
+
+
+# Redis settings refer to https://github.com/bitnami/charts/tree/master/bitnami/redis
+redis:
+  enabled: true
+
+  fullnameOverride: redis
+  architecture: standalone
+  auth:
+    enabled: false
+    sentinel: false
+
+  service:
+    ports:
+      redis: 6379
+
+
+# MySQL settings refer to https://github.com/bitnami/charts/tree/master/bitnami/mysql
+mysql:
+  enabled: true
+
+  fullnameOverride: mysql
+  auth:
+    database: ovFarmTaskStore
+    rootPassword: ovfarm
+    username: ovfarm
+    password: ovfarm
+
+  service:
+    port: 3306
+
+  primary:
+    configuration: |-
+      [mysqld]
+      default_authentication_plugin=mysql_native_password
+      skip-name-resolve
+      explicit_defaults_for_timestamp
+      basedir=/opt/bitnami/mysql
+      plugin_dir=/opt/bitnami/mysql/lib/plugin
+      port=3306
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      datadir=/bitnami/mysql/data
+      tmpdir=/opt/bitnami/mysql/tmp
+      max_allowed_packet=16M
+      bind-address=*
+      pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
+      log-error=/opt/bitnami/mysql/logs/mysqld.log
+      character-set-server=UTF8
+      collation-server=utf8_general_ci
+      slow_query_log=0
+      slow_query_log_file=/opt/bitnami/mysql/logs/mysqld.log
+      long_query_time=10.0
+      [client]
+      port=3306
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      default-character-set=UTF8
+      plugin_dir=/opt/bitnami/mysql/lib/plugin
+      [manager]
+      port=3306
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
+
+  secondary: 
+    configuration: |-
+      [mysqld]
+      default_authentication_plugin=mysql_native_password
+      skip-name-resolve
+      explicit_defaults_for_timestamp
+      basedir=/opt/bitnami/mysql
+      plugin_dir=/opt/bitnami/mysql/lib/plugin
+      port=3306
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      datadir=/bitnami/mysql/data
+      tmpdir=/opt/bitnami/mysql/tmp
+      max_allowed_packet=16M
+      bind-address=*
+      pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
+      log-error=/opt/bitnami/mysql/logs/mysqld.log
+      character-set-server=UTF8
+      collation-server=utf8_general_ci
+      slow_query_log=0
+      slow_query_log_file=/opt/bitnami/mysql/logs/mysqld.log
+      long_query_time=10.0
+      [client]
+      port=3306
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      default-character-set=UTF8
+      plugin_dir=/opt/bitnami/mysql/lib/plugin
+      [manager]
+      port=3306
+      socket=/opt/bitnami/mysql/tmp/mysql.sock
+      pid-file=/opt/bitnami/mysql/tmp/mysqld.pid

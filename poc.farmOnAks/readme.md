@@ -538,7 +538,7 @@ ctr run --rm --gpus 0 -t docker.io/nvidia/cuda:11.0-base cuda-11.0-base nvidia-s
 1. Validate the installation.
     1. Check that Pods are running
         ```sh
-        kubectl get pods -o wide
+        kubectl get pods -o wide $NAMESPACE
         ```
     1. Ensure all pods in ready state
         ```sh
@@ -549,11 +549,6 @@ ctr run --rm --gpus 0 -t docker.io/nvidia/cuda:11.0-base cuda-11.0-base nvidia-s
     1. Check for errors for any pod that aren't ready
         ```sh
         kubectl describe pod <pod_name>
-        ```
-    1. Try endpoints!
-        ```
-        https://saz-dev.eastus.cloudapp.azure.com/
-        https://saz-dev.eastus.cloudapp.azure.com/graphql
         ```
     1. Check endpoints with curl pod
         1. [run curl pod](https://kubernetes.io/docs/tutorials/services/connect-applications-service/#accessing-the-service)
@@ -605,9 +600,24 @@ ctr run --rm --gpus 0 -t docker.io/nvidia/cuda:11.0-base cuda-11.0-base nvidia-s
         pip install toml
         ```
 1. Download sample job
+    download the example df.kit job and sample upload script: 
     ```
-    download the example df.kit job and sample upload script:
+    ngc registry resource download-version "nvidia/omniverse-farm/gpu_verification:1.0.0"
     ```
+    <details>
+    <summary>Expected Output</summary>
+        Downloaded 1.72 KB in 3s, Download speed: 581.19 B/s
+        -----------------------------------------------------------------------------------------------------------
+            Transfer id: gpu_verification_v1.0.0
+            Download status: Completed
+            Downloaded local path: C:\Users\nycjyp\Code\sandbox\omniverse\poc.farmOnAks\jobs\gpu_verification_v1.0.0
+            Total files downloaded: 2
+            Total downloaded size: 1.72 KB
+            Started at: 2023-02-06 12:29:49.255948
+            Completed at: 2023-02-06 12:29:52.282314
+            Duration taken: 3s
+        -----------------------------------------------------------------------------------------------------------
+    </details>
 1. Get Jobs API Key
     ```
     kubectl get cm omniverse-farm-jobs -o yaml -n $NAMESPACE | grep api_key

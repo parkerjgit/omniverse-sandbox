@@ -11,6 +11,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
   location            = var.location
   resource_group_name = var.resource_group_name
   dns_prefix          = local.aks_cluster_dns_prefix
+  http_application_routing_enabled    = true
 
   linux_profile {
     admin_username = "azureuser"

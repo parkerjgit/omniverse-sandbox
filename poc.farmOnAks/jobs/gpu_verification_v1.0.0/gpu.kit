@@ -1,0 +1,24 @@
+[job.gpu]
+name = "gpu"
+job_type = "base"
+command = "nvidia-smi"
+job_spec_path = "/gpu.toml"
+args = []
+task_function = ""
+log_to_stdout = true
+extension_paths = []
+headless = true
+active = true
+unresolved_command_path = "nvidia-smi"
+success_return_codes = [ 0,]
+working_directory = ""
+container = "nvidia/cuda:11.4.1-base-ubuntu20.04"
+
+[job.gpu.env]
+
+[job.gpu.allowed_args]
+
+[job.gpu.capacity_requirements.resource_limits]
+cpu = 1
+memory = "4096Mi"
+"nvidia.com/gpu" = 1
