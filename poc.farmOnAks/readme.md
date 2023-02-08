@@ -99,7 +99,7 @@
         --cluster-name ovfarm-dev-aks-cluster \
         --name gpunodepool \
         --node-count 1 \
-        --node-vm-size Standard_NV6ads_A10_v5 \
+        --node-vm-size Standard_NV12ads_A10_v5 \
         --node-taints sku=gpu:NoSchedule \
         --aks-custom-headers UseGPUDedicatedVHD=true \
         --enable-cluster-autoscaler \
@@ -108,14 +108,6 @@
         --os-sku Ubuntu \
         --mode User \
         --labels vm_type=GPU
-    ```
-1. [optionally] Update nodepool e.g. to add labels (expensive to recreate)
-    ```
-    az aks nodepool update \
-        --resource-group dt-sandbox-resources \
-        --cluster-name ovfarm-dev-aks-cluster \
-        --name gpunodepool \
-        --labels vm_type=GPU 
     ```
 1. Verify that GPUs are schedulable
     ```
@@ -132,11 +124,28 @@
     kubectl get jobs samples-tf-mnist-demo --watch
     ```
 1. Get logs
+1. [optionally] Update nodepool e.g. to add labels (expensive to recreate)
+    ```
+    az aks nodepool update \
+        --resource-group dt-sandbox-resources \
+        --cluster-name ovfarm-dev-aks-cluster \
+        --name gpunodepool \
+        --node-taints "" \
+        --labels vm_type=GPU 
+    ```
+1. [optionally] Delete and re-deploy eg., to change vm-size
+    ```
+    az aks nodepool delete \
+        --resource-group dt-sandbox-resources \
+        --cluster-name ovfarm-dev-aks-cluster \
+        --name gpunodepool
+    az aks nodepool add ... (see Deploy node pool above)
+    ```
     ```
     kubectl get pods --selector app=samples-tf-mnist-demo
     kubectl logs <pod_name>
     ````
-1. Clean-up resources
+1. [optionally] Clean-up resources
     ```
     az aks nodepool delete \
         --resource-group dt-sandbox-resources \
@@ -600,42 +609,31 @@ ctr run --rm --gpus 0 -t docker.io/nvidia/cuda:11.0-base cuda-11.0-base nvidia-s
         pip install toml
         ```
 1. Download sample job
-    download the example df.kit job and sample upload script: 
+    download the example sample jobs: 
     ```
+    ngc registry resource download-version "nvidia/omniverse-farm/cpu_verification:1.0.0"
     ngc registry resource download-version "nvidia/omniverse-farm/gpu_verification:1.0.0"
     ```
-    <details>
-    <summary>Expected Output</summary>
-        Downloaded 1.72 KB in 3s, Download speed: 581.19 B/s
-        -----------------------------------------------------------------------------------------------------------
-            Transfer id: gpu_verification_v1.0.0
-            Download status: Completed
-            Downloaded local path: C:\Users\nycjyp\Code\sandbox\omniverse\poc.farmOnAks\jobs\gpu_verification_v1.0.0
-            Total files downloaded: 2
-            Total downloaded size: 1.72 KB
-            Started at: 2023-02-06 12:29:49.255948
-            Completed at: 2023-02-06 12:29:52.282314
-            Duration taken: 3s
-        -----------------------------------------------------------------------------------------------------------
-    </details>
 1. Get Jobs API Key
-    ```
+    ```sh
     kubectl get cm omniverse-farm-jobs -o yaml -n $NAMESPACE | grep api_key
     FARM_API_KEY=<api_key>
     ```
-1. Upload job definition to cluster
-    ```
-    FARM_BASE_URL="http://farm.23711a66dc7f46649e88.eastus.aksapp.io/"
-    python3 ./job_definition_upload.py df.kit --farm-url=$FARM_BASE_URL --api-key=$FARM_API_KEY
+1. Upload job definitions to cluster
+    ```sh
+    FARM_BASE_URL="http://farm.23711a66dc7f46649e88.eastus.aksapp.io"
+    python3 ./job_definition_upload.py df.kit   --farm-url=$FARM_BASE_URL --api-key=$FARM_API_KEY
+    python3 ./job_definition_upload.py gpu.kit  --farm-url=$FARM_BASE_URL --api-key=$FARM_API_KEY
     ```
 1. Get Job definitions
-    ```
+    ```sh
     curl -X 'GET' \
     "${FARM_BASE_URL}/agent/operator/job/definitions" \
     -H 'accept: application/json'
     ```
-1. Submit job 
-    ```
+    * TODO: wrong endpoint. fix^
+1. Submit CPU test job (df)
+    ```sh
     curl -X "POST" \
     "${FARM_BASE_URL}/queue/management/tasks/submit" \
     -H 'Accept: application/json' \
@@ -652,8 +650,24 @@ ctr run --rm --gpus 0 -t docker.io/nvidia/cuda:11.0-base cuda-11.0-base nvidia-s
     "status": "submitted"
     }'
     ```
-
-### 5. Submit GPU test job
+1. Submit GPU test job
+    ```sh
+    curl -X "POST" \
+    "${FARM_BASE_URL}/queue/management/tasks/submit" \
+    -H 'accept: application/json' \
+    -H 'Content-Type: application/json' \
+    -d '{
+    "user": "testuser",
+    "task_type": "gpu",
+    "task_args": {},
+    "metadata": {
+        "_retry": {
+        "is_retryable": false
+        }
+    },
+    "status": "submitted"
+    }'
+    ```
 
 https://catalog.ngc.nvidia.com/orgs/nvidia/teams/omniverse-farm/resources/gpu_verification/quick-start-guide
 
