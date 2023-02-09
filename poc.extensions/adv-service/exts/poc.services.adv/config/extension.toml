@@ -3,8 +3,8 @@
 version = "1.0.0"
 
 # The title and description fields are primarily for displaying extension info in UI
-title = "Simple UI Extension Template"
-description = "The simplest python extension example. Use it as a starting point for your extensions."
+title = "Viewport capture service"
+description = "Sample service example demonstrating the creation of microservices using Omniverse."
 
 # Path (relative to the root) or content of readme markdown file for UI.
 readme  = "docs/README.md"
@@ -13,13 +13,13 @@ readme  = "docs/README.md"
 changelog = "docs/CHANGELOG.md"
 
 # URL of the extension source repository.
-repository = "https://github.com/NVIDIA-Omniverse/kit-extension-template"
+repository = "https://github.com/parkerjgit/omniverse-sandbox/tree/main/poc.extensions/adv-service"
 
 # One of categories for UI.
-category = "Example"
+category = "services"
 
 # Keywords for the extension
-keywords = ["kit", "example"]
+keywords = ["kit", "service"]
 
 # Icon to show in the extension manager
 icon = "data/icon.png"
@@ -27,17 +27,31 @@ icon = "data/icon.png"
 # Preview to show in the extension manager
 preview_image = "data/preview.png"
 
-
 # Use omni.ui to build simple UI
 [dependencies]
-"omni.kit.uiapp" = {}
+"omni.kit.menu.edit" = {}
+"omni.kit.actions.core" = {}
+"omni.services.core" = {}
+"omni.services.transport.server.http" = {}
+"omni.usd" = {}
 
 # Main python module this extension provides, it will be publicly available as "import omni.hello.world".
 [[python.module]]
-name = "omni.hello.world"
+name = "poc.services.adv"
 
-[[test]]
-# Extra dependencies only to be used during test run
-dependencies = [
-    "omni.kit.ui_test" # UI testing extension
-]
+# Settings of our extension:
+[settings.exts."poc.services.adv"]
+# URL prefix where the service will be mounted, where our API will be available to handle incoming requests.
+#
+# Defining this as a setting makes it easy to change or rebrand the endpoint using only command-line or KIT-file
+# configuration instructions, should extensions ever feature conflicting endpoint naming conventions.
+url_prefix = "/viewport-capture"
+
+# Path from where the captured images will be served from, when exposed to clients.
+#
+# This path will be mounted as a child of the `url_prefix` setting, and expressed as a formatted join of the
+# `{url_prefix}{capture_path}` settings.
+capture_path = "/static"
+
+# Name of the directory on the server where captured images will be stored:
+capture_directory = "captured_stage_images"

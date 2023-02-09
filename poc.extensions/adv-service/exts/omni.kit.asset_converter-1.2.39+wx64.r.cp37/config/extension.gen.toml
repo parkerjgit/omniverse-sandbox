@@ -1,0 +1,9 @@
+[package]
+[package.target]
+platform = ["windows-x86_64"]
+config = ["release"]
+python = ["cp37"]
+[package.publish]
+date = 1666794213
+kitVersion = "104.0+release.92238.1ca55f8d.tc"
+buildNumber = "104.0+master.559.6933238c.tc"
