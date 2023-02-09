@@ -109,7 +109,7 @@
         --mode User \
         --labels vm_type=GPU
     ```
-1. Verify that GPUs are schedulable
+. Verify that GPUs are schedulable
     ```
     kubectl get nodes
     kubectl describe node <node_name>
@@ -122,8 +122,12 @@
 1. Get job status
     ```
     kubectl get jobs samples-tf-mnist-demo --watch
-    ```
+    ```1
 1. Get logs
+    ```
+    kubectl get pods --selector app=samples-tf-mnist-demo
+    kubectl logs <pod_name>
+    ````
 1. [optionally] Update nodepool e.g. to add labels (expensive to recreate)
     ```
     az aks nodepool update \
@@ -141,10 +145,6 @@
         --name gpunodepool
     az aks nodepool add ... (see Deploy node pool above)
     ```
-    ```
-    kubectl get pods --selector app=samples-tf-mnist-demo
-    kubectl logs <pod_name>
-    ````
 1. [optionally] Clean-up resources
     ```
     az aks nodepool delete \
@@ -152,7 +152,6 @@
         --cluster-name ovfarm-dev-aks-cluster \
         --name gpunodepool
     ```
-
 ### 2b. Deploy GPU Node Pool from Daemonset (Untested)
 
 ### 2c. Manually configure nodes the hard way (Don't do this)
@@ -508,26 +507,33 @@ ctr run --rm --gpus 0 -t docker.io/nvidia/cuda:11.0-base cuda-11.0-base nvidia-s
     ```
 1. Define variables
     ```
-    NAMESPACE="ovfarm"
+    K8S_NAMESPACE="ovfarm"
     NGC_API_KEY=<NGC_API_TOKEN>
 1. Create namespace
     ```
-    kubectl create namespace $NAMESPACE
+    kubectl create namespace $K8S_NAMESPACE
     ```
     * Question: can this be default namespace?
 1. Create [Docker Config Secret](https://kubernetes.io/docs/concepts/configuration/secret/#docker-config-secrets)
     ```
     kubectl create secret docker-registry my-registry-secret \
-        --namespace $NAMESPACE \
+        --namespace $K8S_NAMESPACE \
         --docker-server="nvcr.io" \
         --docker-username='$oauthtoken' \
-        --docker-password=$NGC_API_TOKEN
+        --docker-password=$NGC_API_KEY
     ```
 1. fetch helm chart
     ```
     helm fetch https://helm.ngc.nvidia.com/nvidia/omniverse/charts/omniverse-farm-0.3.2.tgz \
         --username='$oauthtoken' \
-        --password=$NGC_API_TOKEN
+        --password=$NGC_API_KEY
+    ```
+1. configure deployment. besure to use correct dns zone for host in `values.yaml` file. Can get DNS Zone Name with:
+    ```sh
+    az aks show 
+        --resource-group "ov-resources" 
+        --name "ovfarm-dev-aks-cluster" 
+        --query addonProfiles.httpApplicationRouting.config.HTTPApplicationRoutingZoneName 
     ```
 1. install farm
     ```
@@ -536,7 +542,7 @@ ctr run --rm --gpus 0 -t docker.io/nvidia/cuda:11.0-base cuda-11.0-base nvidia-s
             omniverse-farm \
             omniverse-farm-0.3.2.tgz \
         --create-namespace \
-        --namespace $NAMESPACE \
+        --namespace $K8S_NAMESPACE \
         --values ./containers/farm/values.yaml
     helm list -n ovfarm
     ```
@@ -547,11 +553,11 @@ ctr run --rm --gpus 0 -t docker.io/nvidia/cuda:11.0-base cuda-11.0-base nvidia-s
 1. Validate the installation.
     1. Check that Pods are running
         ```sh
-        kubectl get pods -o wide $NAMESPACE
+        kubectl get pods -o wide $K8S_NAMESPACE
         ```
     1. Ensure all pods in ready state
         ```sh
-        kubectl -n $NAMESPACE wait --timeout=300s --for condition=Ready pods --all
+        kubectl -n $K8S_NAMESPACE wait --timeout=300s --for condition=Ready pods --all
         
         ```
         * Note, controller takes a very long time to initialize
@@ -562,9 +568,9 @@ ctr run --rm --gpus 0 -t docker.io/nvidia/cuda:11.0-base cuda-11.0-base nvidia-s
     1. Check endpoints with curl pod
         1. [run curl pod](https://kubernetes.io/docs/tutorials/services/connect-applications-service/#accessing-the-service)
             ```sh
-            kubectl run curl --namespace=$NAMESPACE --image=radial/busyboxplus:curl -i --tty -- sh
+            kubectl run curl --namespace=$K8S_NAMESPACE --image=radial/busyboxplus:curl -i --tty -- sh
             # use "exec" if curl pod already exists
-            kubectl exec curl --namespace=$NAMESPACE -i --tty -- sh
+            kubectl exec curl --namespace=$K8S_NAMESPACE -i --tty -- sh
             ```
         1. check endpoints
             ```sh
@@ -616,7 +622,7 @@ ctr run --rm --gpus 0 -t docker.io/nvidia/cuda:11.0-base cuda-11.0-base nvidia-s
     ```
 1. Get Jobs API Key
     ```sh
-    kubectl get cm omniverse-farm-jobs -o yaml -n $NAMESPACE | grep api_key
+    kubectl get cm omniverse-farm-jobs -o yaml -n $K8S_NAMESPACE | grep api_key
     FARM_API_KEY=<api_key>
     ```
 1. Upload job definitions to cluster

@@ -73,12 +73,25 @@
         --ext-folder ./exts ^
         --enable poc.services.simple
     ```
-1. Navigate to OpenAPI docs at `http://localhost:8211/docs` which include `/hello-world` endpoint.
+1. Navigate to OpenAPI docs at `http://localhost:8211/docs` which include `/hello-world` endpoint. (Note, port will depend on host application. See below)
 1. Test endpoint:
     ```
     curl -X 'GET' \
-        'http://localhost:8011/hello-world' \
+        'http://localhost:8211/hello-world' \
         -H 'accept: application/json'
+    ```
+
+Notes:
+* Omniverse applications run a webserver and expose an api by default, so if you are running service from an UI app, e.g. Code, Create, etc, then you do not need to manually run a webserver, eg., with `omni.services.transport.server.http`. Note, by default, single instances of omniverse applications use the following ports: Kit - 8011, Create - 8111, Code - 8211.
+* Get Port:
+    ```py
+    import carb
+    http_server_port = carb.settings.get_settings().get_as_int("exts/omni.services.transport.server.http/port")
+    carb.log_info(f"The OpenAPI specifications can be accessed at: http://localhost:{http_server_port}/docs")
+    ```
+* Configure Port:
+    ```toml
+    "omni.services.transport.server.http".port = 8311
     ```
 
 ## Headless service
@@ -88,6 +101,14 @@
 1. Clone [Omniverse Kit Extensions Project Template](https://github.com/NVIDIA-Omniverse/kit-extension-template) into project root
     ```
     git clone git@github.com:NVIDIA-Omniverse/kit-extension-template.git .
+    ```
+1. Link with omniverse app (creates app sym link)
+    ```sh
+    # windows
+    link_app.bat --app code
+
+    # linux
+    link_app.sh -app code
     ```
 1. Start service by passing configuration to `kit.exe`
     ```
@@ -128,6 +149,44 @@
     ```
     git clone git@github.com:NVIDIA-Omniverse/kit-extension-template.git .
     ```
+1. Create app sym link (ie. [Linking with an Omniverse app](https://github.com/NVIDIA-Omniverse/kit-extension-template#linking-with-an-omniverse-app))
+    ```sh
+    link_app.bat --app code     # windows
+    link_app.sh --app code       # linux
+    ```
+1. Start Code w/ service enabled (ie. [Add a new extension to your Omniverse App](https://github.com/NVIDIA-Omniverse/kit-extension-template#add-a-new-extension-to-your-omniverse-app))
+    ```
+    ./app/kit/kit.exe \
+        ./app/apps/omni.code.kit \
+        --ext-folder ./exts \
+        --enable omni.hello.world \ 
+        --enable poc.services.adv \
+        --enable omni.services.assets.validate \
+        --enable omni.services.assets.convert \
+        --/exts/omni.kit.registry.nucleus/registries/0/name=kit/services \
+        --/exts/omni.kit.registry.nucleus/registries/0/url=https://dw290v42wisod.cloudfront.net/exts/kit/services
+    ```
+1. Start service headlessly
+    ```
+    kit adv-service.kit
+    ```
+    * get extension name error expected.
+1. Test endpoint
+    ```
+    curl -X 'POST' \
+        'http://localhost:8311/viewport-capture/capture' \
+        -H 'accept: application/json' \
+        -H 'Content-Type: application/json' \
+        -d '{
+            "usd_stage_path": "omniverse://a6f20fa6-28fe-4e4d-8b5f-ca35bc7f5c90.cne.ngc.nvidia.com/NVIDIA/Samples/Astronaut/Astronaut.usd"
+        }'
+    ```
+
+Notes:
+* `carb.log_warn()` logs to stdout.
+* `carb.settings.get_settings().get_as_string` gets arbitrary settings from config
+Questions:
+* How to install launcher on wsl2?
 
 ## Containerized Service
 
