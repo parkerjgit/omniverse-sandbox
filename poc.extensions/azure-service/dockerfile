@@ -1,0 +1,37 @@
+# Start with Kit Base image
+FROM nvcr.io/nvidia/omniverse/kit:104.0.0
+
+# Install external pip dependancies   
+RUN echo "deb http://archive.ubuntu.com/ubuntu focal main universe" | tee -a /etc/apt/sources.list.d/ubuntu-focal-universe.list
+RUN echo "deb http://ppa.launchpad.net/deadsnakes/ppa/ubuntu focal main" | tee -a /etc/apt/sources.list.d/deadsnakes-ppa.list
+RUN apt-get update \
+    && apt-get install -y gnupg \
+    && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys BA6932366A755776 \
+    && apt-get install -y python3.7 python3-pip python3.7-distutils \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 1 \
+    && pip3 install azure-storage-blob azure-data-tables 
+
+# Install external services dependencies (omni.services does not ship with Kit)
+RUN /opt/nvidia/omniverse/kit-sdk-launcher/kit \
+  --ext-precache-mode \
+  --enable omni.services.core \
+  --enable omni.services.transport.server.http \
+  --/exts/omni.kit.registry.nucleus/registries/0/name="kit/services" \
+  --/exts/omni.kit.registry.nucleus/registries/0/url="https://dw290v42wisod.cloudfront.net/exts/kit/services" \
+  --allow-root
+
+# Copy extension to container
+COPY ./exts /exts
+
+# Declare "intention" for container to use port 8011 at runtime
+EXPOSE 8011/tcp
+
+# Configure a container as an executable
+ENTRYPOINT [ \
+  "/opt/nvidia/omniverse/kit-sdk-launcher/kit", \
+  "--/app/python/extraPaths/0=/usr/local/lib/python3.7/dist-packages", \
+  "--ext-folder", "/exts", \
+  "--enable", "omni.services.transport.server.http", \
+  "--enable", "poc.services.azure", \
+  "--allow-root", \
+  "--no-window"]

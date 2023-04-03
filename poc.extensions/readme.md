@@ -297,6 +297,23 @@ Questions:
         http://ov-demo-microservice.eastus.azurecontainer.io:8011/status
         ```
 
+## Azure storage stervice
+
+1. Start service headlessly
+    ```
+    kit app.kit
+    ```
+1. Start service in container
+    ```
+    docker compose up
+    ```
+1. Clear container cache and restart service
+    ```
+    docker compose down --rmi local --volumes --remove-orphans
+    docker compose build --no-cache
+    docker compose up
+    ```
+
 ## Ref
 
 * [Omniverse Services Getting Started](https://docs.omniverse.nvidia.com/prod_services/prod_services/design/getting_started.html)

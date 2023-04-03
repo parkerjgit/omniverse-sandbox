@@ -1,0 +1,23 @@
+[package]
+version = "1.0.0"
+authors = ["Josh Parker"]
+title = "poc services azure"
+description="A simple azure service"
+readme  = "docs/README.md"
+changelog="docs/CHANGELOG.md"
+icon = "data/icon.png"
+
+[dependencies]
+"omni.services.core" = {}
+
+# Main python module this extension provides, it will be publicly available as "import poc.services.simple".
+[[python.module]]
+name = "poc.services.azure"
+
+# [python.pipapi]
+# archiveDirs = ["/usr/local/lib/python3.7/dist-packages/"]
+# use_online_index = false
+# requirements = [
+#     # "azure-storage-blob",
+#     # "azure-data-tables",
+# ]

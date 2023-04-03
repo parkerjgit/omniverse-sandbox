@@ -1,0 +1,18 @@
+[package]
+title = "Advanced Headless Service"
+version = "0.1.0"
+description = "Advanced headless service"
+
+[settings.app]
+exts.folders.'++' = ["./exts"]
+python.extraPaths.'++' = ["/usr/local/lib/python3.7/dist-packages"]
+
+[settings.exts]
+"omni.services.transport.server.http".port = 8311
+"omni.kit.registry.nucleus".registries = [
+   { name = "kit/services", url = "https://dw290v42wisod.cloudfront.net/exts/kit/services"},
+]
+
+[dependencies]
+"omni.services.transport.server.http" = {}
+"poc.services.azure" = {}
